@@ -97,12 +97,15 @@ function isInsideMask(x, y) {
 class BinaryCounterLoader {
   constructor() {
     this.progress = 0;
-    this.speed = 0.22;
+    this.speed = 0.03;
   }
 
   update() {
     if (this.progress < 100) {
-      this.progress = min(100, this.progress + this.speed);
+      this.progress = min(
+        100,
+        this.progress + this.speed * this.progress + 0.01,
+      );
     }
   }
 }
