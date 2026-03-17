@@ -9,6 +9,7 @@ function setup() {
   pixelDensity(1);
   textFont("Monospace");
 
+  cellSize = getResponsiveCellSize();
   buildGrid();
   loader = new BinaryCounterLoader();
   maskGraphics = createGraphics(windowWidth, windowHeight);
@@ -33,6 +34,7 @@ function draw() {
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
+  cellSize = getResponsiveCellSize();
   buildGrid();
 
   maskGraphics = createGraphics(windowWidth, windowHeight);
@@ -77,6 +79,73 @@ function drawCounterMask() {
   maskGraphics.text(binary, width * 0.5, height * 0.5);
 }
 
+function drawSourceMask() {
+  const value = floor(loader.progress);
+  const binary = value.toString(2);
+
+  sourceMask.clear();
+  sourceMask.background(0);
+  sourceMask.textAlign(CENTER, CENTER);
+  sourceMask.textFont("Courier New");
+
+  const maxMaskWidth = width * 0.82;
+  const maxMaskHeight = height * 0.24;
+  const fittedSize = fitMaskTextSize(
+    sourceMask,
+    binary,
+    maxMaskWidth,
+    maxMaskHeight,
+    "Courier New",
+  );
+
+  sourceMask.textSize(fittedSize);
+  sourceMask.fill(255);
+  sourceMask.stroke(255);
+  sourceMask.strokeWeight(max(6, cellSize * 0.7));
+  sourceMask.strokeJoin(ROUND);
+
+  sourceMask.text(binary, width * 0.5, height * 0.5);
+}
+
+function drawTargetMask() {
+  targetMask.clear();
+  targetMask.background(0);
+  targetMask.textAlign(CENTER, CENTER);
+  targetMask.textFont("Courier New");
+  targetMask.fill(255);
+  targetMask.stroke(255);
+  targetMask.strokeWeight(max(5, cellSize * 0.55));
+  targetMask.strokeJoin(ROUND);
+
+  const lines = ["THE", "NATURE", "OF CODE"];
+  const lineHeight = 1.02;
+
+  const fittedSize = fitMultilineMaskTextSize(
+    targetMask,
+    lines,
+    width * 0.84,
+    height * 0.42,
+    lineHeight,
+    "Courier New",
+  );
+
+  targetMask.textSize(fittedSize);
+
+  const step = fittedSize * lineHeight;
+  const cx = width * 0.5;
+  const cy = height * 0.5;
+
+  targetMask.text(lines[0], cx, cy - step);
+  targetMask.text(lines[1], cx, cy);
+  targetMask.text(lines[2], cx, cy + step);
+}
+
+function getResponsiveCellSize() {
+  if (width < 700) return 14;
+  if (width < 1180) return 16;
+  return 18;
+}
+
 function isInsideMask(x, y) {
   const px = floor(x);
   const py = floor(y);
@@ -92,6 +161,73 @@ function isInsideMask(x, y) {
 
   const idx = 4 * (py * maskGraphics.width + px);
   return maskGraphics.pixels[idx] > 10;
+}
+
+function fitMaskTextSize(
+  g,
+  str,
+  maxWidth,
+  maxHeight,
+  fontName = "Courier New",
+) {
+  g.textFont(fontName);
+
+  let low = 8;
+  let high = 400;
+  let best = low;
+
+  while (low <= high) {
+    const mid = floor((low + high) / 2);
+    g.textSize(mid);
+
+    const w = g.textWidth(str);
+    const h = mid;
+
+    if (w <= maxWidth && h <= maxHeight) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return best;
+}
+
+function fitMultilineMaskTextSize(
+  g,
+  lines,
+  maxWidth,
+  maxHeight,
+  lineHeight = 1.0,
+  fontName = "Courier New",
+) {
+  g.textFont(fontName);
+
+  let low = 8;
+  let high = 300;
+  let best = low;
+
+  while (low <= high) {
+    const mid = floor((low + high) / 2);
+    g.textSize(mid);
+
+    let widest = 0;
+    for (const line of lines) {
+      widest = max(widest, g.textWidth(line));
+    }
+
+    const totalHeight = mid * lineHeight * lines.length;
+
+    if (widest <= maxWidth && totalHeight <= maxHeight) {
+      best = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return best;
 }
 
 class BinaryCounterLoader {
